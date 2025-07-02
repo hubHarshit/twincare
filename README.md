@@ -17,11 +17,6 @@
 
 ---
 
-## 📇 System Architecture
-
-
-
-![System Architecture](assets/architecture.png)
 
 ### Cloud-Native Deployment Overview
 
@@ -235,11 +230,7 @@ docker compose -f ops/docker/docker-compose.local.yml up --build -d
 
 ---
 
-## 📄 License
 
-MIT © Harshit Pant
-
----
 
 ## 🙏 Acknowledgements
 
