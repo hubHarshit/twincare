@@ -18,6 +18,7 @@
 ---
 
 
+
 ### Cloud-Native Deployment Overview
 
 | Layer             | Service                | GCP Component                              |
@@ -185,9 +186,20 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ## ⚙️ Deployment
 
-TwinCare can run everywhere—from a single GPU laptop to a fully managed, HIPAA ‑compliant stack on **Google Cloud Platform**.
+TwinCare can run everywhere—from a single GPU laptop to a fully managed, HIPAA-compliant stack on **Google Cloud Platform**.
 
 ### Infrastructure-as-Code (Terraform)
+
+The `ops/terraform/` folder provides reproducible GCP environments for both staging and production. It includes:
+
+* VPC network and subnet provisioning
+* GKE Autopilot or Cloud Run deployments
+* Redis via Memorystore module
+* Workload Identity and IAM bindings for Vertex AI
+* Firestore rules and indexes
+* Secret Manager secrets from `terraform.tfvars`
+
+#### Basic Usage
 
 ```bash
 cd ops/terraform/envs/staging
@@ -195,7 +207,83 @@ terraform init
 terraform apply -var-file=staging.tfvars
 ```
 
-> Modules include GKE, Memorystore, Vertex AI, Secret Manager, Firestore, and IAM bindings.
+**Example `staging.tfvars`**:
+
+```hcl
+project_id     = "twincare-dev"
+region         = "us-central1"
+llm_model_path = "gs://twincare-models/MedAlpaca-2-7B"
+redis_size     = "basic"
+```
+
+All modules are validated with `tflint` and `terraform-docs`. Use `make validate` before each commit.
+
+---
+
+### CI/CD via Cloud Build
+
+Add a `cloudbuild.yaml` to the root:
+
+```yaml
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/twincare-backend', '.']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['run', 'deploy', 'twincare-api', '--image', 'gcr.io/$PROJECT_ID/twincare-backend', '--region', 'us-central1', '--platform', 'managed']
+images:
+  - 'gcr.io/$PROJECT_ID/twincare-backend'
+```
+
+Trigger it from GitHub pushes using Cloud Build Triggers.
+
+---
+
+### Helm Charts (GKE)
+
+Found in `ops/helm/twincare/`. Values configurable via `values.yaml`:
+
+```yaml
+replicaCount: 3
+image:
+  repository: gcr.io/twincare-prod/twincare-backend
+  tag: latest
+env:
+  MODEL_PATH: /models/med-alpaca-2-7b-chat.Q4_K_M.gguf
+  REDIS_HOST: redis-master
+resources:
+  limits:
+    cpu: 1
+    memory: 2Gi
+```
+
+Install via:
+
+```bash
+helm upgrade --install twincare-api ./ops/helm/twincare -n twincare --create-namespace
+```
+
+TwinCare can run everywhere—from a single GPU laptop to a fully managed, HIPAA-compliant stack on **Google Cloud Platform**.
+
+### Infrastructure-as-Code (Terraform)
+
+The `ops/terraform/` folder provides reproducible GCP environments for both staging and production. It includes:
+
+* VPC network and subnet provisioning
+* GKE Autopilot or Cloud Run deployments
+* Redis via Memorystore module
+* Workload Identity and IAM bindings for Vertex AI
+* Firestore rules and indexes
+* Secret Manager secrets from `terraform.tfvars`
+
+#### Basic Usage
+
+```bash
+cd ops/terraform/envs/staging
+terraform init
+terraform apply -var-file=staging.tfvars
+```
+
+All modules are validated with `tflint` and `terraform-docs`. Use `make validate` before each commit.
 
 ---
 
@@ -229,7 +317,6 @@ docker compose -f ops/docker/docker-compose.local.yml up --build -d
 3. Open a PR with clear description
 
 ---
-
 
 
 ## 🙏 Acknowledgements
