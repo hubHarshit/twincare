@@ -1,4 +1,4 @@
-#Twincare 💑
+# Twincare 💑
 
 *A privacy‑first virtual healthcare assistant that performs symptom triage, appointment booking, and insurance guidance — all powered by on‑prem LLMs and FastAPI.*
 
@@ -18,6 +18,41 @@
 ---
 
 ## 🏗️ System Architecture
+
+### Updated Mermaid Diagram
+
+```mermaid
+graph TD
+  A[User Interaction] --> B[Frontend (React/Next.js)]
+  B --> C[MCPCore (Message Orchestrator)]
+  C --> D1[Doctor Recommendation Engine]
+  C --> D2[Insurance Eligibility Check (pVerify)]
+  C --> D3[Symptom Checker (Vertex AI)]
+  C --> D4[EHR Parsing / Mapping (FHIR)]
+  D1 --> E[LLM + FAISS Retrieval (Treatment Guidance)]
+  D2 --> F[Insurance Cost Estimator]
+  D3 --> G[LLM Diagnosis]
+  D4 --> H[Patient Profile Enrichment]
+  H --> I[Booking + Notifications (Twilio)]
+```
+
+### Cloud-Native Deployment Overview
+
+| Layer             | Service                | GCP Component                              |
+| ----------------- | ---------------------- | ------------------------------------------ |
+| **Compute**       | API + Agents           | Cloud Run / GKE                            |
+| **LLM Inference** | Symptom check, triage  | Vertex AI Endpoints (e.g., MedPalm, Gemma) |
+| **Search/RAG**    | Treatment retrieval    | FAISS / Vertex AI Matching Engine          |
+| **Persistence**   | Session data           | Firestore                                  |
+| **Analytics**     | Queryable logs & usage | BigQuery                                   |
+| **Blob storage**  | Uploaded files         | Cloud Storage                              |
+| **CI/CD**         | Build + deploy         | Cloud Build + Artifact Registry            |
+| **Secrets**       | API keys, credentials  | Secret Manager                             |
+| **Auth**          | User access control    | Firebase Auth / Identity Platform          |
+
+> Full Terraform IaC and Helm charts available in `ops/` folder (coming soon).
+
+---
 
 ```mermaid
 graph TD
@@ -196,6 +231,29 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 TwinCare can run everywhere—from a single GPU laptop to a fully managed, HIPAA‑compliant stack on **Google Cloud Platform**. Below are the most common footprints.
 
+### Infrastructure-as-Code (Terraform)
+
+The `ops/terraform/` folder provides reproducible GCP environments for both staging and production. It includes:
+
+* VPC network and subnet provisioning
+* GKE Autopilot or Cloud Run deployments
+* Redis via Memorystore module
+* Workload Identity and IAM bindings for Vertex AI
+* Firestore rules and indexes
+* Secret Manager secrets from `terraform.tfvars`
+
+#### Basic Usage
+
+```bash
+cd ops/terraform/envs/staging
+terraform init
+terraform apply -var-file=staging.tfvars
+```
+
+All modules are validated with `tflint` and `terraform-docs`. Use `make validate` before each commit.
+
+---
+
 ### Local (Docker Compose)
 
 ```bash
@@ -253,11 +311,7 @@ All discussions happen in **GitHub Issues** ➜ feel free to open feature idea
 
 ---
 
-## 📄 License
 
-MIT © Harshit Pant
-
----
 
 ## 🙏 Acknowledgements
 
