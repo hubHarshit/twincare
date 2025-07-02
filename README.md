@@ -1,4 +1,4 @@
-# Twincare \U0001F491
+#Twincare 💑
 
 *A privacy‑first virtual healthcare assistant that performs symptom triage, appointment booking, and insurance guidance — all powered by on‑prem LLMs and FastAPI.*
 
